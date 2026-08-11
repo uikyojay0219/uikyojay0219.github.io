@@ -112,6 +112,17 @@ function addCart(){const i=state.selected;if(i.variants&&!state.drinkVariant)ret
 function removeCart(i){state.cart.splice(i,1);save();render()} function cartQty(i,d){state.cart[i].qty=Math.max(1,state.cart[i].qty+d);save();render()}
 function submitOrder(){const table=document.getElementById('tableNo')?.value?.trim()||'';const note=document.getElementById('orderNote')?.value?.trim()||'';toast(`送單接口尚未串接${table?'・桌號 '+table:''}${note?'・已保留備註':''}`)}
 submitOrder=async function(){const table=document.getElementById('tableNo')?.value?.trim()||'',note=document.getElementById('orderNote')?.value?.trim()||'';try{toast('訂單送出中…');await fetch('https://script.google.com/macros/s/AKfycbyPxy0qAwmmi-J-48N4nXY2383jzHHm50MyjnRTVspkEXCpbaoNyaiFuDjyT5UM7kmOUw/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tableNo:table,note:note,total:cartTotal(),items:state.cart})});toast('測試訂單已送出'+(table?'・'+table+'號桌':''))}catch(e){toast('送單失敗，請再試一次')}}
+CATEGORIES.forEach(c=>{if(c[0]==='輕吐司／乳酪餅')c[0]='清吐司／乳酪餅'});
+allItems.forEach(i=>{if(i.category==='輕吐司／乳酪餅')i.category='清吐司／乳酪餅'});
+['D001','D002','D003','D004','D005','D006','D007','D008'].forEach(s=>{
+  const sp=special[s],i=allItems.find(x=>x.sku===s);
+  if(sp?.choice){
+    sp.choice.options=sp.choice.options.map(([n,p])=>[n==='輕吐司'?'清吐司':n,p]);
+    sp.note=`清吐司 $${i.price}／乳酪餅 $${i.price+10}`;
+  }
+});
+special.D009={...(special.D009||{}),note:'乳酪餅限定'};
+special.D010={...(special.D010||{}),note:'乳酪餅限定'};l
   render();
 </script>
 </body>
