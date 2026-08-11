@@ -111,7 +111,8 @@ function qty(d){state.qty=Math.max(1,state.qty+d);render()} function setChoice(v
 function addCart(){const i=state.selected;if(i.variants&&!state.drinkVariant)return toast('請先選擇飲料規格');let meta=[];if(i.variants)meta.push(state.drinkVariant);const sp=special[i.sku]||{};if(sp.choice&&state.choice&&state.choice!=='原設定'&&state.choice!=='不加套餐')meta.push(state.choice);if(sp.addons)sp.addons.forEach(a=>{if(state.addons.has(a[0]))meta.push(a[0])});state.cart.push({sku:i.sku,name:i.name,unit:currentUnit(),qty:state.qty,meta:meta.join('／')});save();toast('已加入購物車');render()}
 function removeCart(i){state.cart.splice(i,1);save();render()} function cartQty(i,d){state.cart[i].qty=Math.max(1,state.cart[i].qty+d);save();render()}
 function submitOrder(){const table=document.getElementById('tableNo')?.value?.trim()||'';const note=document.getElementById('orderNote')?.value?.trim()||'';toast(`送單接口尚未串接${table?'・桌號 '+table:''}${note?'・已保留備註':''}`)}
-render();
+submitOrder=async function(){const table=document.getElementById('tableNo')?.value?.trim()||'',note=document.getElementById('orderNote')?.value?.trim()||'';try{toast('訂單送出中…');await fetch('https://script.google.com/macros/s/AKfycbyPxy0qAwmmi-J-48N4nXY2383jzHHm50MyjnRTVspkEXCpbaoNyaiFuDjyT5UM7kmOUw/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tableNo:table,note:note,total:cartTotal(),items:state.cart})});toast('測試訂單已送出'+(table?'・'+table+'號桌':''))}catch(e){toast('送單失敗，請再試一次')}}
+  render();
 </script>
 </body>
 </html>
