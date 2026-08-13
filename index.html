@@ -106,9 +106,15 @@ const special={
 function loadCart(){try{return JSON.parse(localStorage.getItem('boboCartV1')||'[]')}catch(e){return []}}
 const urlTableNo=(new URLSearchParams(window.location.search).get('table')||'').trim();
 let state={view:'home',category:null,selected:null,qty:1,choice:null,mealDrink:null,addons:new Set(),condiments:new Set(),drinkVariant:null,cart:loadCart()};
+const lastCartTable=(localStorage.getItem('boboCartTableV1')||'').trim();
+if(urlTableNo&&lastCartTable&&lastCartTable!==urlTableNo&&state.cart.length){
+  state.cart=[];
+  try{localStorage.setItem('boboCartV1','[]')}catch(e){}
+}
+if(urlTableNo){try{localStorage.setItem('boboCartTableV1',urlTableNo)}catch(e){}}
 const app=document.getElementById('app');
 function money(n){return '$'+Number(n||0).toLocaleString('zh-TW')}
-function save(){try{localStorage.setItem('boboCartV1',JSON.stringify(state.cart))}catch(e){}}
+function save(){try{localStorage.setItem('boboCartV1',JSON.stringify(state.cart));if(urlTableNo)localStorage.setItem('boboCartTableV1',urlTableNo)}catch(e){}}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600)}
 function cartCount(){return state.cart.reduce((s,x)=>s+x.qty,0)} function cartTotal(){return state.cart.reduce((s,x)=>s+x.unit*x.qty,0)}
 function topbar(back=false,title='') {return `<div class="topbar">${back?`<button class="iconbtn" onclick="goBack()">←</button>`:''}<div class="brand"><h1>${title||'波波草早午餐'}</h1>${title?'':`<small>BoboCao Breakfast & Brunch</small>`}</div><button class="iconbtn" onclick="showCart()">🛒</button></div>`}
@@ -127,7 +133,7 @@ function qty(d){state.qty=Math.max(1,state.qty+d);render()} function setChoice(v
 function addCart(){const i=state.selected;if(i.variants&&!state.drinkVariant)return toast('請先選擇飲料規格');let meta=[];if(i.variants)meta.push(state.drinkVariant);const sp=special[i.sku]||{};if(sp.choice&&state.choice&&state.choice!=='原設定'){meta.push(state.choice);if(sp.mealDrink){const md=mealDrinkByKey(state.mealDrink);if(!md)return toast('請先選擇套餐飲料');meta.push('套餐飲料：'+mealDrinkLabel(md));}}if(sp.addons)sp.addons.forEach(a=>{if(state.addons.has(a[0]))meta.push(a[0])});if(sp.condiments)sp.condiments.forEach(c=>{if(state.condiments.has(c))meta.push(c)});state.cart.push({sku:i.sku,name:i.name,unit:currentUnit(),qty:state.qty,meta:meta.join('／')});save();toast('已加入購物車');render()}
 function removeCart(i){state.cart.splice(i,1);save();render()} function cartQty(i,d){state.cart[i].qty=Math.max(1,state.cart[i].qty+d);save();render()}
 function submitOrder(){const table=document.getElementById('tableNo')?.value?.trim()||urlTableNo||'';const note=document.getElementById('orderNote')?.value?.trim()||'';toast(`送單接口尚未串接${table?'・桌號 '+table:''}${note?'・已保留備註':''}`)}
-submitOrder=async function(){const table=document.getElementById('tableNo')?.value?.trim()||urlTableNo||'',note=document.getElementById('orderNote')?.value?.trim()||'';try{toast('訂單送出中…');await fetch('https://script.google.com/macros/s/AKfycbyPxy0qAwmmi-J-48N4nXY2383jzHHm50MyjnRTVspkEXCpbaoNyaiFuDjyT5UM7kmOUw/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tableNo:table,note:note,total:cartTotal(),items:state.cart})});toast('測試訂單已送出'+(table?'・'+table+'號桌':''))}catch(e){toast('送單失敗，請再試一次')}}
+submitOrder=async function(){const table=document.getElementById('tableNo')?.value?.trim()||urlTableNo||'',note=document.getElementById('orderNote')?.value?.trim()||'';try{toast('訂單送出中…');await fetch('https://script.google.com/macros/s/AKfycbyPxy0qAwmmi-J-48N4nXY2383jzHHm50MyjnRTVspkEXCpbaoNyaiFuDjyT5UM7kmOUw/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tableNo:table,note:note,total:cartTotal(),items:state.cart})});state.cart=[];save();state.view='home';state.category=null;state.selected=null;state.qty=1;state.choice=null;state.mealDrink=null;state.addons=new Set();state.condiments=new Set();state.drinkVariant=null;render();window.scrollTo(0,0);toast('訂單已送出'+(table?'・'+table+'號桌':''))}catch(e){toast('送單失敗，請再試一次')}}
 CATEGORIES.forEach(c=>{if(c[0]==='輕吐司／乳酪餅')c[0]='清吐司／乳酪餅'});
 allItems.forEach(i=>{if(i.category==='輕吐司／乳酪餅')i.category='清吐司／乳酪餅'});
 ['D001','D002','D003','D004','D005','D006','D007','D008'].forEach(s=>{
