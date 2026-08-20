@@ -178,6 +178,92 @@ allItems.forEach(i=>{if(i.category==='輕吐司／乳酪餅')i.category='清吐�
 });
 special.D009={...(special.D009||{}),note:'乳酪餅限定'};
 special.D010={...(special.D010||{}),note:'乳酪餅限定'};
+
+// ===== 清吐司／乳酪餅分開售完補丁 =====
+function isDChoiceItem(i){
+  return !!i && /^D00[1-8]$/.test(String(i.sku||''));
+}
+function dSoldOutKey(i,type){
+  return String(i.sku)+'#'+String(type);
+}
+function isDTypeSoldOut(i,type){
+  return isDChoiceItem(i) && state.soldOutSkus.has(dSoldOutKey(i,type));
+}
+function selectedDType(i){
+  if(!isDChoiceItem(i)) return null;
+  return state.choice==='乳酪餅'?'乳酪餅':'清吐司';
+}
+function dAvailabilityText(i){
+  if(!isDChoiceItem(i)) return '';
+  const toastSold=isDTypeSoldOut(i,'清吐司');
+  const cheeseSold=isDTypeSoldOut(i,'乳酪餅');
+  if(toastSold&&cheeseSold) return '清吐司、乳酪餅今日售完';
+  if(toastSold) return '清吐司今日售完・乳酪餅可點';
+  if(cheeseSold) return '乳酪餅今日售完・清吐司可點';
+  return '';
+}
+
+const __boboDOldFullySold=isItemFullySoldOut;
+isItemFullySoldOut=function(i){
+  if(isDChoiceItem(i)){
+    return isDTypeSoldOut(i,'清吐司')&&isDTypeSoldOut(i,'乳酪餅');
+  }
+  return __boboDOldFullySold(i);
+};
+
+const __boboDOldAvailability=aAvailabilityText;
+aAvailabilityText=function(i){
+  if(isDChoiceItem(i)) return dAvailabilityText(i);
+  return __boboDOldAvailability(i);
+};
+
+const __boboDOldSelectItem=selectItem;
+selectItem=function(sku){
+  __boboDOldSelectItem(sku);
+  const i=state.selected;
+  if(!isDChoiceItem(i)) return;
+  if(state.choice && !isDTypeSoldOut(i,state.choice)) return;
+  if(!isDTypeSoldOut(i,'清吐司')) state.choice='清吐司';
+  else if(!isDTypeSoldOut(i,'乳酪餅')) state.choice='乳酪餅';
+  else state.choice=null;
+  render();
+};
+
+const __boboDOldSetChoice=setChoice;
+setChoice=function(v){
+  const i=state.selected;
+  if(isDChoiceItem(i) && isDTypeSoldOut(i,v)){
+    return toast(v+'今日售完');
+  }
+  return __boboDOldSetChoice(v);
+};
+
+const __boboDOldDetailPage=detailPage;
+detailPage=function(){
+  let html=__boboDOldDetailPage();
+  const i=state.selected;
+  if(!isDChoiceItem(i)) return html;
+  ['清吐司','乳酪餅'].forEach(type=>{
+    if(!isDTypeSoldOut(i,type)) return;
+    const marker="onchange='setChoice("+JSON.stringify(type)+")'>"+type;
+    const replacement='disabled>'+type+'（今日售完）';
+    html=html.split(marker).join(replacement);
+  });
+  return html;
+};
+
+const __boboDOldAddCart=addCart;
+addCart=function(){
+  const i=state.selected;
+  if(isDChoiceItem(i)){
+    const type=selectedDType(i);
+    if(!state.choice) return toast('此商品今日售完');
+    if(isDTypeSoldOut(i,type)) return toast(type+'今日售完');
+  }
+  return __boboDOldAddCart();
+};
+// ===== 清吐司／乳酪餅分開售完補丁結束 =====
+
   render();
   loadSoldOutStatus();
   setInterval(loadSoldOutStatus,15000);
