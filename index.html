@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- 波波草｜明日營業緊急穩定客人版｜2026-08-22：送單必須後端確認才顯示成功；確認碼防重複 -->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
@@ -20,6 +21,13 @@ button,input,textarea,select{font:inherit}.app{max-width:520px;margin:0 auto;min
 .cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:30;width:min(520px,100%);padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,#fffdf8 78%,rgba(255,253,248,.0));}.cartbar button{display:flex;justify-content:space-between;align-items:center}.badge{display:inline-flex;min-width:24px;height:24px;padding:0 7px;align-items:center;justify-content:center;background:#fff;color:var(--green);border-radius:999px;margin-left:7px}
 .notice{margin:12px 16px;padding:12px 13px;border-radius:12px;background:#f3f0e8;color:#5f5a50;font-size:13px;line-height:1.45}.empty{text-align:center;color:var(--muted);padding:44px 16px}.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;z-index:50;opacity:0;pointer-events:none;transition:.2s;max-width:88%;text-align:center}.toast.show{opacity:1}.hidden{display:none!important}.soldout-label{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:#f3dedb;color:var(--danger);font-size:11px;font-weight:800;vertical-align:1px}.disabled .item-name{color:#777}
 .order-choice{padding:30px 16px 18px}.order-choice h2{margin:0 0 8px;text-align:center;color:var(--green);font-size:25px}.order-choice p{text-align:center;color:var(--muted);margin:0 0 22px;line-height:1.5}.choice-stack{display:grid;gap:14px}.choice-btn{width:100%;border:1px solid var(--line);background:#fff;border-radius:18px;padding:22px 16px;text-align:left;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow)}.choice-btn .choice-ico{font-size:34px}.choice-btn strong{display:block;color:var(--green);font-size:21px}.choice-btn small{display:block;color:var(--muted);margin-top:4px;line-height:1.4}.table-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.table-btn{border:1px solid var(--green);background:#fff;color:var(--green);border-radius:14px;padding:17px 8px;font-weight:800;font-size:18px}.order-status{margin:12px 16px 0;padding:10px 12px;border:1px solid var(--line);background:#fff;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}.order-status strong{color:var(--green)}.order-status button{border:0;background:transparent;color:var(--green);font-weight:700;padding:4px}.order-summary{margin:0 0 14px;padding:12px 13px;border-radius:12px;background:#f3f0e8;color:#5f5a50}.order-summary strong{color:var(--green)}
+/* 2026-08-27 客人端操作辨識優化：只改按鈕視覺與送單回饋 */
+.add-cart-btn{position:sticky;bottom:88px;z-index:24;background:#2563eb!important;color:#fff!important;font-size:20px!important;padding:18px 16px!important;border-radius:15px!important;box-shadow:0 10px 26px rgba(37,99,235,.24)!important}
+.cart{padding-bottom:112px}
+.submitbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:40;width:min(520px,100%);padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,#fffdf8 82%,rgba(255,253,248,.72),rgba(255,253,248,0))}
+.submit-order-btn{width:100%;border:0;border-radius:16px;background:#d97706;color:#fff;font-weight:900;font-size:22px;padding:19px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 28px rgba(217,119,6,.28)}
+.submit-order-btn:disabled{background:#9a9287;color:#fff;opacity:1}
+.toast.order-success{bottom:50%;transform:translate(-50%,50%);width:min(420px,88%);max-width:88%;padding:22px 18px;border-radius:16px;background:#1f6f3e;font-size:21px;font-weight:900;line-height:1.55;white-space:pre-line;box-shadow:0 14px 40px rgba(0,0,0,.28)}
 @media(min-width:700px){body{padding:24px}.app{border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}}
 </style>
 </head>
@@ -126,7 +134,8 @@ function selectedAType(i){if(!isAItem(i))return null;if(A_TOAST_ONLY_SKUS.has(i.
 const app=document.getElementById('app');
 function money(n){return '$'+Number(n||0).toLocaleString('zh-TW')}
 function save(){try{localStorage.setItem('boboCartV1',JSON.stringify(state.cart));if(state.orderType==='dinein'&&state.tableNo)localStorage.setItem('boboCartTableV1',state.tableNo)}catch(e){}}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600)}
+let __boboToastTimer=null;
+function toast(msg){const t=document.getElementById('toast');const text=String(msg||'');const success=text.includes('店家已收到訂單');clearTimeout(__boboToastTimer);t.classList.toggle('order-success',success);t.textContent=success?'✓ 訂單已送出\n店家已收到，請勿重複按送出':text;t.classList.add('show');__boboToastTimer=setTimeout(()=>t.classList.remove('show','order-success'),success?4000:1800)}
 function cartCount(){return state.cart.reduce((s,x)=>s+x.qty,0)} function cartTotal(){return state.cart.reduce((s,x)=>s+x.unit*x.qty,0)}
 function topbar(back=false,title='') {return `<div class="topbar">${back?`<button class="iconbtn" onclick="goBack()">←</button>`:''}<div class="brand"><h1>${title||'波波草早午餐'}</h1>${title?'':`<small>BoboCao Breakfast & Brunch</small>`}</div><button class="iconbtn" onclick="showCart()">🛒</button></div>`}
 function cartbar(){return `<div class="cartbar"><button class="primary" onclick="showCart()"><span>🛒 購物車 <span class="badge">${cartCount()}</span></span><span>${money(cartTotal())}</span></button></div>`}
@@ -139,8 +148,8 @@ function categoryPage(){const list=allItems.filter(i=>i.category===state.categor
 function selectItem(sku){state.selected=allItems.find(i=>i.sku===sku);if(!state.selected)return;if(isItemFullySoldOut(state.selected)){state.selected=null;return toast('此商品今日售完')}state.view='detail';state.qty=1;state.addons=new Set();state.condiments=new Set();state.choice=null;state.saladSauce=null;state.mealDrink=null;state.drinkVariant=null;state.drinkSugar=null;state.portion=null;state.method=null;if(isAItem(state.selected)&&!A_TOAST_ONLY_SKUS.has(state.selected.sku)&&isATypeSoldOut(state.selected,'吐司')&&!isATypeSoldOut(state.selected,'漢堡'))state.addons.add('漢堡');if(state.selected.variants){const keys=Object.keys(state.selected.variants);if(keys.length)state.drinkVariant=keys[0]}const sp=special[sku];if(sp?.choice?.options?.length){state.choice=(sp.choice.autoSelect===false||sp.choice.title.startsWith('套餐加購'))?null:sp.choice.options[0][0]}render()}
 function currentUnit(){const i=state.selected;if(!i)return 0;if(i.variants)return i.variants[state.drinkVariant]||0;let p=i.price;const sp=special[i.sku]||{};if(sp.portion){if(state.portion){const o=sp.portion.options.find(x=>x[0]===state.portion);if(o)p=Number(o[1])}else if(sp.portion.options?.length){p=Math.min(...sp.portion.options.map(x=>Number(x[1])||0))}}if(sp.choice&&state.choice){const o=sp.choice.options.find(x=>x[0]===state.choice);if(o)p+=o[1]}if(sp.mealDrink&&state.choice&&state.mealDrink){const md=mealDrinkByKey(state.mealDrink);if(md){const credit=Number(sp.mealDrink.credit||20);p+=Math.max(0,Number(md.price||0)-credit)}}if(sp.addons){sp.addons.forEach(a=>{if(state.addons.has(a[0]))p+=a[1]})}return p}
 function addonOptionHtml(i,a){const isBurger=isAItem(i)&&a[0]==='漢堡';const burgerSold=isBurger&&isATypeSoldOut(i,'漢堡');const burgerForced=isBurger&&isATypeSoldOut(i,'吐司')&&!burgerSold;const disabled=burgerSold||burgerForced;const checked=state.addons.has(a[0]);const label=burgerSold?'漢堡（今日售完）':(burgerForced?'漢堡（吐司售完，目前僅供應漢堡）':a[0]);return `<div class="opt"><label><input type="checkbox" ${checked?'checked':''} ${disabled?'disabled':''} onchange='toggleAddon(${JSON.stringify(a[0])})'>${label}</label><strong>+${money(a[1]).slice(1)}</strong></div>`}
-function detailPage(){const i=state.selected,sp=special[i.sku]||{};let options='';if(i.variants){options+=`<div class="group"><h4>規格</h4>${Object.entries(i.variants).map(([k,v])=>`<div class="opt"><label><input type="radio" name="drink" ${state.drinkVariant===k?'checked':''} onchange="setDrink('${k}')">${k}</label><strong> ${money(v)}</strong></div>`).join('')}${i.pending?`<div class="item-sub">${i.pending}</div>`:''}</div><div class="group"><h4>糖度</h4>${['有糖','無糖'].map(v=>`<div class="opt"><label><input type="radio" name="sugar" ${state.drinkSugar===v?'checked':''} onchange="setSugar('${v}')">${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.portion){options+=`<div class="group"><h4>${sp.portion.title}</h4>${sp.portion.options.map(o=>`<div class="opt"><label><input type="radio" name="portion" ${state.portion===o[0]?'checked':''} onchange='setPortion(${JSON.stringify(o[0])})'>${o[0]}</label><strong>${money(o[1])}</strong></div>`).join('')}</div>`}if(sp.method){options+=`<div class="group"><h4>${sp.method.title}</h4>${sp.method.options.map(v=>`<div class="opt"><label><input type="radio" name="method" ${state.method===v?'checked':''} onchange='setMethod(${JSON.stringify(v)})'>${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.addons){options+=`<div class="group"><h4>加購選項（可複選）</h4>${sp.addons.map(a=>addonOptionHtml(i,a)).join('')}</div>`}if(sp.condiments){options+=`<div class="group"><h4>醬料／調味（可複選）</h4>${sp.condiments.map(c=>`<div class="opt"><label><input type="checkbox" ${state.condiments.has(c)?'checked':''} onchange="toggleCondiment('${c}')">${c}</label><strong>免費</strong></div>`).join('')}</div>`}if(sp.saladSauce){options+=`<div class="group"><h4>${sp.saladSauce.title}</h4>${sp.saladSauce.options.map(v=>`<div class="opt"><label><input type="radio" name="saladSauce" ${state.saladSauce===v?'checked':''} onchange='setSaladSauce(${JSON.stringify(v)})'>${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.choice){options+=`<div class="group"><h4>${sp.choice.title}</h4>${sp.choice.options.map(o=>`<div class="opt"><label><input type="radio" name="choice" ${state.choice===o[0]?'checked':''} onchange='setChoice(${JSON.stringify(o[0])})'>${o[0]}</label><strong>${o[1]?('+'+money(o[1]).slice(1)):'$0'}</strong></div>`).join('')}</div>`}if(sp.mealDrink&&state.choice){const credit=Number(sp.mealDrink.credit||20);if(sp.mealDrink.autoSelect!==false&&!state.mealDrink&&mealDrinkOptions.length)state.mealDrink=mealDrinkOptions[0].key;const placeholder=!state.mealDrink?'<option value="" selected disabled>請選擇套餐飲料</option>':'';options+=`<div class="group"><h4>${sp.mealDrink.title}</h4><div class="field"><select id="mealDrinkSelect" onchange="setMealDrink(this.value)">${placeholder}${mealDrinkOptions.map(o=>`<option value="${o.key}" ${state.mealDrink===o.key?'selected':''}>${mealDrinkLabel(o,credit)}</option>`).join('')}</select></div><div class="item-sub">${credit} 元飲料不加價；超過 ${credit} 元只補差額。</div></div>`}return `${topbar(true,'商品詳情')}<div class="detail"><div class="detail-head"><div class="detail-title"><h2>${i.name}</h2><div class="detail-price">${money(currentUnit())}</div></div><div class="item-sub">${aAvailabilityText(i)||sp.note||i.pending||'依現場菜單資料建立'}</div></div>${options}<div class="group"><h4>數量</h4><div class="qty"><button onclick="qty(-1)">−</button><strong>${state.qty}</strong><button onclick="qty(1)">＋</button></div></div><button class="primary" onclick="addCart()">加入購物車・${money(currentUnit()*state.qty)}</button></div>${cartbar()}`}
-function cartPage(){if(!state.cart.length)return `${topbar(true,'購物車')}<div class="empty">購物車目前沒有商品</div><div class="section"><button class="secondary" onclick="homeGo()">返回菜單</button></div>`;const orderLabel=state.orderType==='takeout'?'🥡 外帶':`🍽️ 內用・${tableDisplayName(state.tableNo)}`;return `${topbar(true,'購物車')}<div class="cart"><div class="order-summary">本次訂單：<strong>${orderLabel}</strong></div>${state.cart.map((x,idx)=>`<div class="cart-card"><div class="cart-row"><div><h4>${x.name}</h4><div class="cart-meta">${x.meta||''}</div></div><strong class="price">${money(x.unit*x.qty)}</strong></div><div class="cart-actions"><button class="linkbtn" onclick="removeCart(${idx})">刪除</button><div class="qty"><button onclick="cartQty(${idx},-1)">−</button><strong>${x.qty}</strong><button onclick="cartQty(${idx},1)">＋</button></div></div></div>`).join('')}<div class="field"><label>備註</label><textarea id="orderNote" placeholder="例如：不要洋蔥、醬另外裝…"></textarea></div><div class="totalbox"><div class="totalrow"><span>小計</span><strong>${money(cartTotal())}</strong></div><div class="totalrow grand"><span>總計</span><span>${money(cartTotal())}</span></div></div><button class="primary" onclick="submitOrder()">送出訂單 →</button></div>`}
+function detailPage(){const i=state.selected,sp=special[i.sku]||{};let options='';if(i.variants){options+=`<div class="group"><h4>規格</h4>${Object.entries(i.variants).map(([k,v])=>`<div class="opt"><label><input type="radio" name="drink" ${state.drinkVariant===k?'checked':''} onchange="setDrink('${k}')">${k}</label><strong> ${money(v)}</strong></div>`).join('')}${i.pending?`<div class="item-sub">${i.pending}</div>`:''}</div><div class="group"><h4>糖度</h4>${['有糖','無糖'].map(v=>`<div class="opt"><label><input type="radio" name="sugar" ${state.drinkSugar===v?'checked':''} onchange="setSugar('${v}')">${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.portion){options+=`<div class="group"><h4>${sp.portion.title}</h4>${sp.portion.options.map(o=>`<div class="opt"><label><input type="radio" name="portion" ${state.portion===o[0]?'checked':''} onchange='setPortion(${JSON.stringify(o[0])})'>${o[0]}</label><strong>${money(o[1])}</strong></div>`).join('')}</div>`}if(sp.method){options+=`<div class="group"><h4>${sp.method.title}</h4>${sp.method.options.map(v=>`<div class="opt"><label><input type="radio" name="method" ${state.method===v?'checked':''} onchange='setMethod(${JSON.stringify(v)})'>${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.addons){options+=`<div class="group"><h4>加購選項（可複選）</h4>${sp.addons.map(a=>addonOptionHtml(i,a)).join('')}</div>`}if(sp.condiments){options+=`<div class="group"><h4>醬料／調味（可複選）</h4>${sp.condiments.map(c=>`<div class="opt"><label><input type="checkbox" ${state.condiments.has(c)?'checked':''} onchange="toggleCondiment('${c}')">${c}</label><strong>免費</strong></div>`).join('')}</div>`}if(sp.saladSauce){options+=`<div class="group"><h4>${sp.saladSauce.title}</h4>${sp.saladSauce.options.map(v=>`<div class="opt"><label><input type="radio" name="saladSauce" ${state.saladSauce===v?'checked':''} onchange='setSaladSauce(${JSON.stringify(v)})'>${v}</label><strong>$0</strong></div>`).join('')}</div>`}if(sp.choice){options+=`<div class="group"><h4>${sp.choice.title}</h4>${sp.choice.options.map(o=>`<div class="opt"><label><input type="radio" name="choice" ${state.choice===o[0]?'checked':''} onchange='setChoice(${JSON.stringify(o[0])})'>${o[0]}</label><strong>${o[1]?('+'+money(o[1]).slice(1)):'$0'}</strong></div>`).join('')}</div>`}if(sp.mealDrink&&state.choice){const credit=Number(sp.mealDrink.credit||20);if(sp.mealDrink.autoSelect!==false&&!state.mealDrink&&mealDrinkOptions.length)state.mealDrink=mealDrinkOptions[0].key;const placeholder=!state.mealDrink?'<option value="" selected disabled>請選擇套餐飲料</option>':'';options+=`<div class="group"><h4>${sp.mealDrink.title}</h4><div class="field"><select id="mealDrinkSelect" onchange="setMealDrink(this.value)">${placeholder}${mealDrinkOptions.map(o=>`<option value="${o.key}" ${state.mealDrink===o.key?'selected':''}>${mealDrinkLabel(o,credit)}</option>`).join('')}</select></div><div class="item-sub">${credit} 元飲料不加價；超過 ${credit} 元只補差額。</div></div>`}return `${topbar(true,'商品詳情')}<div class="detail"><div class="detail-head"><div class="detail-title"><h2>${i.name}</h2><div class="detail-price">${money(currentUnit())}</div></div><div class="item-sub">${aAvailabilityText(i)||sp.note||i.pending||'依現場菜單資料建立'}</div></div>${options}<div class="group"><h4>數量</h4><div class="qty"><button onclick="qty(-1)">−</button><strong>${state.qty}</strong><button onclick="qty(1)">＋</button></div></div><button class="primary add-cart-btn" onclick="addCart()">加入購物車・${money(currentUnit()*state.qty)}</button></div>${cartbar()}`}
+function cartPage(){if(!state.cart.length)return `${topbar(true,'購物車')}<div class="empty">購物車目前沒有商品</div><div class="section"><button class="secondary" onclick="homeGo()">返回菜單</button></div>`;const orderLabel=state.orderType==='takeout'?'🥡 外帶':`🍽️ 內用・${tableDisplayName(state.tableNo)}`;return `${topbar(true,'購物車')}<div class="cart"><div class="order-summary">本次訂單：<strong>${orderLabel}</strong></div>${state.cart.map((x,idx)=>`<div class="cart-card"><div class="cart-row"><div><h4>${x.name}</h4><div class="cart-meta">${x.meta||''}</div></div><strong class="price">${money(x.unit*x.qty)}</strong></div><div class="cart-actions"><button class="linkbtn" onclick="removeCart(${idx})">刪除</button><div class="qty"><button onclick="cartQty(${idx},-1)">−</button><strong>${x.qty}</strong><button onclick="cartQty(${idx},1)">＋</button></div></div></div>`).join('')}<div class="field"><label>備註</label><textarea id="orderNote" placeholder="例如：不要洋蔥、醬另外裝…"></textarea></div><div class="totalbox"><div class="totalrow"><span>小計</span><strong>${money(cartTotal())}</strong></div><div class="totalrow grand"><span>總計</span><span>${money(cartTotal())}</span></div></div><div class="submitbar"><button id="submitOrderBtn" class="submit-order-btn" onclick="submitOrder()"><span>送出訂單</span><strong>${money(cartTotal())}</strong></button></div></div>`}
 
 function render(){app.innerHTML=state.view==='service'?servicePage():state.view==='table'?tablePage():state.view==='home'?home():state.view==='category'?categoryPage():state.view==='detail'?detailPage():cartPage()}
 function chooseOrderType(type){state.orderType=type;if(fixedTableNo){state.tableNo=fixedTableNo;state.view='home'}else if(type==='takeout'){state.tableNo='';state.view='home'}else{state.tableNo='';state.view='table'}render();window.scrollTo(0,0)}
@@ -152,19 +161,82 @@ function qty(d){state.qty=Math.max(1,state.qty+d);render()} function setChoice(v
 function cartItemName(i){if(i.category==='蛋餅')return i.name.endsWith('蛋餅')?i.name:i.name+'蛋餅';if(i.category==='蔥抓餅＋蛋'){if(i.name.includes('抓餅'))return i.name+'＋蛋';return i.name+'蔥抓餅＋蛋'}if(i.category==='吐司／漢堡'){if(i.name.includes('吐司'))return i.name;return i.name+(state.addons.has('漢堡')?'漢堡':'吐司')}if(i.category==='清吐司／乳酪餅'){if(state.choice)return i.name+state.choice;if(i.sku==='D009'||i.sku==='D010')return i.name+'乳酪餅'}return i.name}
 function addCart(){const i=state.selected;if(!i)return;if(isItemFullySoldOut(i))return toast('此商品今日售完');const aType=selectedAType(i);if(aType&&isATypeSoldOut(i,aType))return toast(aType+'今日售完');if(i.variants&&!state.drinkVariant)return toast('請先選擇飲料規格');if(i.variants&&!state.drinkSugar)return toast('請先選擇糖度');const sp=special[i.sku]||{};if(sp.portion?.required&&!state.portion)return toast('請先選擇份量');if(sp.method?.required&&!state.method)return toast('請先選擇做法');if(sp.choice?.required&&!state.choice)return toast('請先選擇'+String(sp.choice.title||'選項').replace('（必選）',''));if(sp.saladSauce?.required&&!state.saladSauce)return toast('請先選擇沙拉醬');if(sp.mealDrink?.required&&!state.mealDrink)return toast('請先選擇套餐飲料');let meta=[];if(i.variants){meta.push(state.drinkVariant);meta.push(state.drinkSugar)}if(sp.portion&&state.portion)meta.push(state.portion);if(sp.method&&state.method)meta.push(state.method);if(sp.saladSauce&&state.saladSauce)meta.push('沙拉醬：'+state.saladSauce);if(sp.choice&&state.choice&&state.choice!=='原設定'){if(i.category!=='清吐司／乳酪餅')meta.push(state.choice);if(sp.mealDrink){const md=mealDrinkByKey(state.mealDrink);if(!md)return toast('請先選擇套餐飲料');meta.push('套餐飲料：'+mealDrinkLabel(md,Number(sp.mealDrink.credit||20)));}}if(sp.addons)sp.addons.forEach(a=>{if(state.addons.has(a[0])&&!(i.category==='吐司／漢堡'&&a[0]==='漢堡'))meta.push(a[0])});if(sp.condiments)sp.condiments.forEach(c=>{if(state.condiments.has(c))meta.push(c)});state.cart.push({sku:i.sku,name:cartItemName(i),unit:currentUnit(),qty:state.qty,meta:meta.join('／')});save();state.view='home';state.selected=null;state.qty=1;render();window.scrollTo(0,0);toast('已加入購物車')}
 function removeCart(i){state.cart.splice(i,1);save();render()} function cartQty(i,d){state.cart[i].qty=Math.max(1,state.cart[i].qty+d);save();render()}
-function submitOrder(){const orderRef=state.orderType==='takeout'?'外帶':state.tableNo;const note=document.getElementById('orderNote')?.value?.trim()||'';toast(`送單接口尚未串接・${state.orderType==='takeout'?'外帶':state.tableNo+'桌'}${note?'・已保留備註':''}`)}
-submitOrder=async function(){if(!state.orderType)return toast('請先選擇內用或外帶');if(state.orderType==='dinein'&&!state.tableNo)return toast('請先選擇桌號');const orderRef=state.orderType==='takeout'?'外帶':normalizeTableNo(state.tableNo),sourceTable=state.orderType==='takeout'?normalizeTableNo(state.tableNo||fixedTableNo||''):'',note=document.getElementById('orderNote')?.value?.trim()||'';try{toast('訂單送出中…');await fetch(ORDER_API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tableNo:orderRef,sourceTable:sourceTable,note:note,total:cartTotal(),items:state.cart})});state.cart=[];save();state.view='service';state.orderType=null;state.tableNo=fixedTableNo||'';state.category=null;state.selected=null;state.qty=1;state.choice=null;state.saladSauce=null;state.mealDrink=null;state.addons=new Set();state.condiments=new Set();state.drinkVariant=null;state.drinkSugar=null;state.portion=null;state.method=null;render();window.scrollTo(0,0);toast('訂單已送出・'+(orderRef==='外帶'?'外帶':tableDisplayName(orderRef)))}catch(e){toast('送單失敗，請再試一次')}}
+const ORDER_PENDING_KEY='bobocao_pending_order_v2';
+let __boboSubmitBusy=false;
+function makeClientToken(){
+  try{
+    const a=new Uint32Array(4);crypto.getRandomValues(a);
+    return 'BOBO_'+Array.from(a).map(x=>x.toString(36)).join('_')+'_'+Date.now().toString(36);
+  }catch(e){return 'BOBO_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14)}
+}
+function orderFingerprint(payload){return JSON.stringify({tableNo:payload.tableNo,sourceTable:payload.sourceTable,note:payload.note,total:payload.total,items:payload.items})}
+function getOrCreatePendingToken(payload){
+  const fp=orderFingerprint(payload);
+  try{
+    const old=JSON.parse(localStorage.getItem(ORDER_PENDING_KEY)||'null');
+    if(old&&old.fp===fp&&old.token)return old.token;
+  }catch(e){}
+  const token=makeClientToken();
+  try{localStorage.setItem(ORDER_PENDING_KEY,JSON.stringify({fp:fp,token:token,at:Date.now()}))}catch(e){}
+  return token;
+}
+function clearPendingToken(){try{localStorage.removeItem(ORDER_PENDING_KEY)}catch(e){}}
+function jsonpOrderStatus(token){
+  return new Promise(resolve=>{
+    const cb='__boboOrderConfirm_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const s=document.createElement('script');
+    let done=false;
+    const finish=(v)=>{if(done)return;done=true;clearTimeout(timer);try{delete window[cb]}catch(e){};try{s.remove()}catch(e){};resolve(v)};
+    const timer=setTimeout(()=>finish(null),3500);
+    window[cb]=(payload)=>finish(payload||null);
+    s.onerror=()=>finish(null);
+    s.src=ORDER_API_URL+'?action=orderStatus&clientToken='+encodeURIComponent(token)+'&callback='+encodeURIComponent(cb)+'&t='+Date.now();
+    document.head.appendChild(s);
+  });
+}
+async function waitForOrderConfirmation(token){
+  for(let i=0;i<4;i++){
+    const r=await jsonpOrderStatus(token);
+    if(r&&r.received)return r;
+    await new Promise(res=>setTimeout(res,900));
+  }
+  return null;
+}
+async function submitOrder(){
+  if(__boboSubmitBusy)return;
+  if(!state.orderType)return toast('請先選擇內用或外帶');
+  if(state.orderType==='dinein'&&!state.tableNo)return toast('請先選擇桌號');
+  if(!state.cart||!state.cart.length)return toast('購物車目前沒有商品');
 
-function loadSoldOutStatus(){
-  const cb='__boboMenuStatus_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const script=document.createElement('script');
-  let done=false;
-  const cleanup=()=>{if(done)return;done=true;try{delete window[cb]}catch(e){};script.remove()};
-  window[cb]=payload=>{const arr=Array.isArray(payload?.soldOutSkus)?payload.soldOutSkus:[];state.soldOutSkus=new Set(arr.map(String));if(state.view==='category')render();cleanup()};
-  script.onerror=cleanup;
-  script.src=ORDER_API_URL+'?action=menuStatus&callback='+encodeURIComponent(cb)+'&t='+Date.now();
-  document.head.appendChild(script);
-  setTimeout(cleanup,8000);
+  const orderRef=state.orderType==='takeout'?'外帶':normalizeTableNo(state.tableNo);
+  const sourceTable=state.orderType==='takeout'?normalizeTableNo(state.tableNo||fixedTableNo||''):'';
+  const note=document.getElementById('orderNote')?.value?.trim()||'';
+  const payload={tableNo:orderRef,sourceTable:sourceTable,note:note,total:cartTotal(),items:state.cart};
+  const token=getOrCreatePendingToken(payload);
+  payload.clientToken=token;
+
+  __boboSubmitBusy=true;
+  const submitBtn=document.getElementById('submitOrderBtn');
+  if(submitBtn){submitBtn.disabled=true;submitBtn.innerHTML='<span>訂單送出中…</span><strong>請稍候</strong>';}
+  toast('訂單送出中，正在確認店家已收到…');
+  try{
+    await fetch(ORDER_API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    const confirmed=await waitForOrderConfirmation(token);
+    if(!confirmed){
+      toast('訂單尚未確認收到，購物車已保留；請再按一次送出或告知店員');
+      return;
+    }
+
+    clearPendingToken();
+    state.cart=[];save();state.view='service';state.orderType=null;state.tableNo=fixedTableNo||'';state.category=null;state.selected=null;state.qty=1;state.choice=null;state.saladSauce=null;state.mealDrink=null;state.addons=new Set();state.condiments=new Set();state.drinkVariant=null;state.drinkSugar=null;state.portion=null;state.method=null;render();window.scrollTo(0,0);
+    toast('店家已收到訂單 ✓・'+(orderRef==='外帶'?'外帶':tableDisplayName(orderRef))+'・訂單 '+(confirmed.orderId||''));
+  }catch(e){
+    toast('送單未完成，購物車已保留，請再按一次送出');
+  }finally{
+    __boboSubmitBusy=false;
+    const submitBtnNow=document.getElementById('submitOrderBtn');
+    if(submitBtnNow){submitBtnNow.disabled=false;submitBtnNow.innerHTML=`<span>送出訂單</span><strong>${money(cartTotal())}</strong>`;}
+  }
 }
 
 CATEGORIES.forEach(c=>{if(c[0]==='輕吐司／乳酪餅')c[0]='清吐司／乳酪餅'});
