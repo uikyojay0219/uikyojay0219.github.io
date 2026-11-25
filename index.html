@@ -358,23 +358,27 @@ addCart=function(){
   function loadSoldOutStatus(){
     if(boboShopRequest)return boboShopRequest;
     boboShopRequest=new Promise(resolve=>{
-      const cb='__boboShop_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const cb='boboShop_'+Date.now()+'_'+Math.random().toString(36).slice(2);
       const s=document.createElement('script');
       let done=false;
+      const valid=p=>p&&p.ok===true&&typeof p.closed==='boolean'&&Array.isArray(p.soldOutSkus);
       function finish(p){
         if(done)return;done=true;clearTimeout(timer);delete window[cb];s.remove();
-        const valid=p&&p.ok===true&&typeof p.closed==='boolean'&&Array.isArray(p.soldOutSkus);
-        boboShopMode=valid?(p.closed?'closed':'open'):'unknown';
+        boboShopMode=valid(p)?(p.closed?'closed':'open'):'unknown';
         const prev=JSON.stringify([...state.soldOutSkus].sort());
-        if(valid)state.soldOutSkus=new Set(p.soldOutSkus);
+        if(valid(p))state.soldOutSkus=new Set(p.soldOutSkus);
         if(boboShopMode==='open'&&prev!==JSON.stringify([...state.soldOutSkus].sort())&&['category','detail'].includes(state.view))render();
         boboShopPaint();
         resolve(boboShopMode==='open');
       }
-      const timer=setTimeout(()=>finish(null),5000);
-      window[cb]=finish;s.onerror=()=>finish(null);
-      s.src=ORDER_API_URL+'?action=menuStatus&callback='+encodeURIComponent(cb)+'&t='+Date.now();
+      const timer=setTimeout(()=>finish(null),20000);
+      const base=ORDER_API_URL+'?action=menuStatus&t='+Date.now();
+      window[cb]=p=>{if(valid(p))finish(p);};
+      s.src=base+'&callback='+encodeURIComponent(cb);
       document.head.appendChild(s);
+      fetch(base,{mode:'cors',credentials:'omit',cache:'no-store'})
+        .then(r=>r.json()).then(p=>{if(valid(p))finish(p);}).catch(()=>{});
+
     }).finally(()=>{boboShopRequest=null;});
     return boboShopRequest;
   }
