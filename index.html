@@ -90,7 +90,7 @@ const drinks = [
 {sku:'L015',category:'飲料',name:'蘋果紅茶',variants:{'中杯':25,'大杯':30}}
 ];
 const allItems=[...items,...drinks];
-const ORDER_API_URL='https://script.google.com/macros/s/AKfycbwB4XieefNQBynVsBwqUxCi3lpWAIJUI4v6qG1SXuw/dev';
+const ORDER_API_URL='https://script.google.com/macros/s/AKfycbyIxcqZlaIjbPlJQ5b8gbJhHU0YSbMgnF8xD9Oe1sQFi6NUBMTu17nn4UfcxAA7LzF0/exec';
 const TABLE_ALIASES={'外用1':'外用桌1','外用一':'外用桌1','外用桌一':'外用桌1','外用2':'外用桌2','外用二':'外用桌2','外用桌二':'外用桌2','吧1':'吧檯1','吧一':'吧檯1','吧檯一':'吧檯1','吧2':'吧檯2','吧二':'吧檯2','吧檯二':'吧檯2'};
 function normalizeTableNo(v){v=String(v||'').trim();return TABLE_ALIASES[v]||v}
 const urlTableNo=normalizeTableNo(new URLSearchParams(location.search).get('table')||'');
