@@ -29,10 +29,12 @@ button,input,textarea,select{font:inherit}.app{max-width:520px;margin:0 auto;min
 .submit-order-btn:disabled{background:#9a9287;color:#fff;opacity:1}
 .toast.order-success{bottom:50%;transform:translate(-50%,50%);width:min(420px,88%);max-width:88%;padding:22px 18px;border-radius:16px;background:#1f6f3e;font-size:21px;font-weight:900;line-height:1.55;white-space:pre-line;box-shadow:0 14px 40px rgba(0,0,0,.28)}
 @media(min-width:700px){body{padding:24px}.app{border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}}
+.app.bobo-shop-initial{display:none!important}
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<noscript><p style="text-align:center;padding:24px">目前無法確認營業狀態，請開啟 JavaScript 後重新載入。</p></noscript>
+<div class="app bobo-shop-initial" id="app">
   <div class="topbar"><div class="brand"><h1>波波草早午餐</h1><small>BoboCao Breakfast &amp; Brunch</small></div><div class="iconbtn">🛒</div></div>
   <div class="hero"><h2>美好的一天，從早餐開始</h2><p>掃碼點餐・免下載 App</p></div>
   <div class="section"><h3>菜單分類</h3><div class="grid">
@@ -90,7 +92,7 @@ const drinks = [
 {sku:'L015',category:'飲料',name:'蘋果紅茶',variants:{'中杯':25,'大杯':30}}
 ];
 const allItems=[...items,...drinks];
-const ORDER_API_URL='https://script.google.com/macros/s/AKfycbyPxy0qAwmmi-J-48N4nXY2383jzHHm50MyjnRTVspkEXCpbaoNyaiFuDjyT5UM7kmOUw/exec';
+const ORDER_API_URL='https://script.google.com/macros/s/AKfycbzVTqWh6kVGH3ByV7xeS5DvEWXR2gbTmkgHF_wBACc_moePKQ_i_xvRHl88PmGE34t5/exec';
 const TABLE_ALIASES={'外用1':'外用桌1','外用一':'外用桌1','外用桌一':'外用桌1','外用2':'外用桌2','外用二':'外用桌2','外用桌二':'外用桌2','吧1':'吧檯1','吧一':'吧檯1','吧檯一':'吧檯1','吧2':'吧檯2','吧二':'吧檯2','吧檯二':'吧檯2'};
 function normalizeTableNo(v){v=String(v||'').trim();return TABLE_ALIASES[v]||v}
 const urlTableNo=normalizeTableNo(new URLSearchParams(location.search).get('table')||'');
@@ -336,9 +338,65 @@ addCart=function(){
 };
 // ===== 清吐司／乳酪餅分開售完補丁結束 =====
 
+  // Isolated test candidate: never send to the old production API.
+  let boboShopMode='checking', boboShopRequest=null, boboShopSubmitting=false;
+  const boboShopNotice=document.createElement('section');
+  boboShopNotice.setAttribute('role','status');
+  boboShopNotice.style.cssText='max-width:600px;margin:60px auto;padding:32px 20px;text-align:center';
+  app.before(boboShopNotice);
+  const boboShopOriginalDisplay=app.style.display;
+  function boboShopPaint(){
+    const open=boboShopMode==='open';
+    app.style.display=open?boboShopOriginalDisplay:'none';
+    app.classList.remove('bobo-shop-initial');
+    boboShopNotice.style.display=open?'none':'block';
+    if(!open){
+      const title=boboShopMode==='closed'?'今日店休':boboShopMode==='checking'?'確認營業狀態中':'暫時無法確認營業狀態';
+      boboShopNotice.innerHTML='<h1>波波草</h1><h2>'+title+'</h2><p>目前暫停點餐服務</p><button type="button" onclick="loadSoldOutStatus()" style="padding:12px 24px">重新確認</button>';
+    }
+  }
+  function loadSoldOutStatus(){
+    if(boboShopRequest)return boboShopRequest;
+    boboShopRequest=new Promise(resolve=>{
+      const cb='boboShop_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      let done=false;
+      const valid=p=>p&&p.ok===true&&typeof p.closed==='boolean'&&Array.isArray(p.soldOutSkus);
+      function finish(p){
+        if(done)return;done=true;clearTimeout(timer);delete window[cb];s.remove();
+        boboShopMode=valid(p)?(p.closed?'closed':'open'):'unknown';
+        const prev=JSON.stringify([...state.soldOutSkus].sort());
+        if(valid(p))state.soldOutSkus=new Set(p.soldOutSkus);
+        if(boboShopMode==='open'&&prev!==JSON.stringify([...state.soldOutSkus].sort())&&['category','detail'].includes(state.view))render();
+        boboShopPaint();
+        resolve(boboShopMode==='open');
+      }
+      const timer=setTimeout(()=>finish(null),20000);
+      const base=ORDER_API_URL+'?action=menuStatus&t='+Date.now();
+      window[cb]=p=>{if(valid(p))finish(p);};
+      s.src=base+'&callback='+encodeURIComponent(cb);
+      document.head.appendChild(s);
+      fetch(base,{mode:'cors',credentials:'omit',cache:'no-store'})
+        .then(r=>r.json()).then(p=>{if(valid(p))finish(p);}).catch(()=>{});
+
+    }).finally(()=>{boboShopRequest=null;});
+    return boboShopRequest;
+  }
+  const boboShopOriginalSubmit=submitOrder;
+  submitOrder=async function(){
+    if(boboShopSubmitting||__boboSubmitBusy)return;
+    boboShopSubmitting=true;
+    try{
+      if(!await loadSoldOutStatus())return;
+      await boboShopOriginalSubmit();
+    }finally{boboShopSubmitting=false;}
+  };
+  boboShopPaint();
   render();
   loadSoldOutStatus();
   setInterval(loadSoldOutStatus,15000);
+  window.addEventListener('pageshow',loadSoldOutStatus);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadSoldOutStatus();});
 </script>
 </body>
 </html>
