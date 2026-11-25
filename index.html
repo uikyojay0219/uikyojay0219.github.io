@@ -29,10 +29,12 @@ button,input,textarea,select{font:inherit}.app{max-width:520px;margin:0 auto;min
 .submit-order-btn:disabled{background:#9a9287;color:#fff;opacity:1}
 .toast.order-success{bottom:50%;transform:translate(-50%,50%);width:min(420px,88%);max-width:88%;padding:22px 18px;border-radius:16px;background:#1f6f3e;font-size:21px;font-weight:900;line-height:1.55;white-space:pre-line;box-shadow:0 14px 40px rgba(0,0,0,.28)}
 @media(min-width:700px){body{padding:24px}.app{border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}}
+.app.bobo-shop-initial{display:none!important}
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<noscript><p style="text-align:center;padding:24px">目前無法確認營業狀態，請開啟 JavaScript 後重新載入。</p></noscript>
+<div class="app bobo-shop-initial" id="app">
   <div class="topbar"><div class="brand"><h1>波波草早午餐</h1><small>BoboCao Breakfast &amp; Brunch</small></div><div class="iconbtn">🛒</div></div>
   <div class="hero"><h2>美好的一天，從早餐開始</h2><p>掃碼點餐・免下載 App</p></div>
   <div class="section"><h3>菜單分類</h3><div class="grid">
@@ -346,6 +348,7 @@ addCart=function(){
   function boboShopPaint(){
     const open=boboShopMode==='open';
     app.style.display=open?boboShopOriginalDisplay:'none';
+    app.classList.remove('bobo-shop-initial');
     boboShopNotice.style.display=open?'none':'block';
     if(!open){
       const title=boboShopMode==='closed'?'今日店休':boboShopMode==='checking'?'確認營業狀態中':'暫時無法確認營業狀態';
